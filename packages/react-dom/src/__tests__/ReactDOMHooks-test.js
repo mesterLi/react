@@ -32,8 +32,8 @@ describe('ReactDOMHooks', () => {
   });
 
   it('can ReactDOM.render() from useEffect', () => {
-    let container2 = document.createElement('div');
-    let container3 = document.createElement('div');
+    const container2 = document.createElement('div');
+    const container3 = document.createElement('div');
 
     function Example1({n}) {
       React.useEffect(() => {
@@ -53,32 +53,23 @@ describe('ReactDOMHooks', () => {
       return 3 * n;
     }
 
-    // we explicitly catch the missing act() warnings
-    // to simulate this tricky repro
-    expect(() => {
-      ReactDOM.render(<Example1 n={1} />, container);
-      expect(container.textContent).toBe('1');
-      expect(container2.textContent).toBe('');
-      expect(container3.textContent).toBe('');
-      Scheduler.unstable_flushAll();
-      expect(container.textContent).toBe('1');
-      expect(container2.textContent).toBe('2');
-      expect(container3.textContent).toBe('3');
+    ReactDOM.render(<Example1 n={1} />, container);
+    expect(container.textContent).toBe('1');
+    expect(container2.textContent).toBe('');
+    expect(container3.textContent).toBe('');
+    Scheduler.unstable_flushAll();
+    expect(container.textContent).toBe('1');
+    expect(container2.textContent).toBe('2');
+    expect(container3.textContent).toBe('3');
 
-      ReactDOM.render(<Example1 n={2} />, container);
-      expect(container.textContent).toBe('2');
-      expect(container2.textContent).toBe('2'); // Not flushed yet
-      expect(container3.textContent).toBe('3'); // Not flushed yet
-      Scheduler.unstable_flushAll();
-      expect(container.textContent).toBe('2');
-      expect(container2.textContent).toBe('4');
-      expect(container3.textContent).toBe('6');
-    }).toWarnDev([
-      'An update to Example1 ran an effect',
-      'An update to Example2 ran an effect',
-      'An update to Example1 ran an effect',
-      'An update to Example2 ran an effect',
-    ]);
+    ReactDOM.render(<Example1 n={2} />, container);
+    expect(container.textContent).toBe('2');
+    expect(container2.textContent).toBe('2'); // Not flushed yet
+    expect(container3.textContent).toBe('3'); // Not flushed yet
+    Scheduler.unstable_flushAll();
+    expect(container.textContent).toBe('2');
+    expect(container2.textContent).toBe('4');
+    expect(container3.textContent).toBe('6');
   });
 
   it('should not bail out when an update is scheduled from within an event handler', () => {
@@ -91,10 +82,10 @@ describe('ReactDOMHooks', () => {
       });
 
       return (
-        <React.Fragment>
+        <>
           <input ref={inputRef} onInput={handleInput} />
           <label ref={labelRef}>{text}</label>
-        </React.Fragment>
+        </>
       );
     };
 
@@ -114,6 +105,7 @@ describe('ReactDOMHooks', () => {
     expect(labelRef.current.innerHTML).toBe('abc');
   });
 
+  // @gate experimental
   it('should not bail out when an update is scheduled from within an event handler in Concurrent Mode', () => {
     const {createRef, useCallback, useState} = React;
 
@@ -124,10 +116,10 @@ describe('ReactDOMHooks', () => {
       });
 
       return (
-        <React.Fragment>
+        <>
           <input ref={inputRef} onInput={handleInput} />
           <label ref={labelRef}>{text}</label>
-        </React.Fragment>
+        </>
       );
     };
 

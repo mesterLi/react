@@ -6,11 +6,11 @@ let ReactCache;
 let Suspense;
 let TextResource;
 
-describe('ReactBatchedMode', () => {
+describe('ReactBlockingMode', () => {
   beforeEach(() => {
     jest.resetModules();
     ReactFeatureFlags = require('shared/ReactFeatureFlags');
-    ReactFeatureFlags.debugRenderPhaseSideEffectsForStrictMode = false;
+
     ReactFeatureFlags.replayFailedUnitOfWorkWithInvokeGuardedCallback = false;
     React = require('react');
     ReactNoop = require('react-noop-renderer');
@@ -18,14 +18,17 @@ describe('ReactBatchedMode', () => {
     ReactCache = require('react-cache');
     Suspense = React.Suspense;
 
-    TextResource = ReactCache.unstable_createResource(([text, ms = 0]) => {
-      return new Promise((resolve, reject) =>
-        setTimeout(() => {
-          Scheduler.unstable_yieldValue(`Promise resolved [${text}]`);
-          resolve(text);
-        }, ms),
-      );
-    }, ([text, ms]) => text);
+    TextResource = ReactCache.unstable_createResource(
+      ([text, ms = 0]) => {
+        return new Promise((resolve, reject) =>
+          setTimeout(() => {
+            Scheduler.unstable_yieldValue(`Promise resolved [${text}]`);
+            resolve(text);
+          }, ms),
+        );
+      },
+      ([text, ms]) => text,
+    );
   });
 
   function Text(props) {
@@ -50,14 +53,14 @@ describe('ReactBatchedMode', () => {
   }
 
   it('updates flush without yielding in the next event', () => {
-    const root = ReactNoop.createSyncRoot();
+    const root = ReactNoop.createBlockingRoot();
 
     root.render(
-      <React.Fragment>
+      <>
         <Text text="A" />
         <Text text="B" />
         <Text text="C" />
-      </React.Fragment>,
+      </>,
     );
 
     // Nothing should have rendered yet
@@ -78,7 +81,7 @@ describe('ReactBatchedMode', () => {
       return <Text text="Hi" />;
     }
 
-    const root = ReactNoop.createSyncRoot();
+    const root = ReactNoop.createBlockingRoot();
     root.render(<App />);
     expect(root).toMatchRenderedOutput(null);
 
@@ -87,7 +90,7 @@ describe('ReactBatchedMode', () => {
   });
 
   it('uses proper Suspense semantics, not legacy ones', async () => {
-    const root = ReactNoop.createSyncRoot();
+    const root = ReactNoop.createBlockingRoot();
     root.render(
       <Suspense fallback={<Text text="Loading..." />}>
         <span>
@@ -112,17 +115,17 @@ describe('ReactBatchedMode', () => {
     expect(Scheduler).toHaveYielded(['Promise resolved [B]']);
     expect(Scheduler).toFlushExpired(['A', 'B', 'C']);
     expect(root).toMatchRenderedOutput(
-      <React.Fragment>
+      <>
         <span>A</span>
         <span>B</span>
         <span>C</span>
-      </React.Fragment>,
+      </>,
     );
   });
 
   it('flushSync does not flush batched work', () => {
     const {useState, forwardRef, useImperativeHandle} = React;
-    const root = ReactNoop.createSyncRoot();
+    const root = ReactNoop.createBlockingRoot();
 
     const Foo = forwardRef(({label}, ref) => {
       const [step, setStep] = useState(0);
@@ -133,10 +136,10 @@ describe('ReactBatchedMode', () => {
     const foo1 = React.createRef(null);
     const foo2 = React.createRef(null);
     root.render(
-      <React.Fragment>
+      <>
         <Foo label="A" ref={foo1} />
         <Foo label="B" ref={foo2} />
-      </React.Fragment>,
+      </>,
     );
 
     // Mount
